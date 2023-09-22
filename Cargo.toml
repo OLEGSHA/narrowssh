@@ -1,0 +1,15 @@
+[package]
+name = "narrowssh"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.75"
+clap = { version = "4.0", features = ["derive"] }
+derive-getters = "0.3.0"
+serde = { version = "1.0.188", features = ["derive"] }
+toml = { version = "0.7.8", features = ["parse"] }
+uzers = "0.11.0"
+
+[dev-dependencies]
+assert_fs = { version = "1.0.13", features = ["color-auto"] }
