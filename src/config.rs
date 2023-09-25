@@ -5,7 +5,6 @@ use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, Context, Result};
-use derive_getters::Getters;
 use serde::Deserialize;
 use uzers::uid_t;
 
@@ -156,16 +155,16 @@ where
 }
 
 /// Complete parsed configuration.
-#[derive(Clone, Getters, Debug)]
+#[derive(Clone, Debug)]
 pub struct Config {
     // TODO
 }
 
 /// A user's control settings.
-#[derive(Clone, Getters, Debug)]
+#[derive(Clone, Debug)]
 pub struct Control {
     /// Killswitch for all functionality.
-    enable: bool,
+    pub enable: bool,
 
     /// Path to user-defined config.
     ///
@@ -179,22 +178,22 @@ pub struct Control {
     /// This path must either begin with a `/` to denote an absolute path,
     /// or with a `~` to denote a path relative to the home directory of the
     /// user. This path cannot end with a `/`.
-    config: String,
+    pub config: String,
 
     /// Path to the authorized_keys(5) file of this user.
     ///
     /// This path must either begin with a `/` to denote an absolute path,
     /// or with a `~` to denote a path relative to the home directory of the
     /// user. This path cannot end with a `/`.
-    authorized_keys: String,
+    pub authorized_keys: String,
 }
 
 /// Copy of `Control` struct with every field wrapped in an Option.
 #[derive(Debug, Deserialize)]
 struct IncompleteControl {
-    enable: Option<bool>,
-    config: Option<String>,
-    authorized_keys: Option<String>,
+    pub enable: Option<bool>,
+    pub config: Option<String>,
+    pub authorized_keys: Option<String>,
 }
 
 impl Control {
@@ -308,6 +307,7 @@ impl ControlManager {
     }
 
     /// Returns a [`Control`] structure for given user.
+    #[must_use]
     pub fn get_user_control(&self, uid: uid_t) -> Control {
         let mut result = self.fallback.clone();
 

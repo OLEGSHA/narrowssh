@@ -6,6 +6,7 @@
 use anyhow::{anyhow, bail, Result};
 use clap::{Parser, Subcommand};
 
+use narrowssh::config::ControlManager;
 use narrowssh::workspace::Workspace;
 
 /// Manage allowlisted SSH commands for one or more users.
@@ -53,7 +54,13 @@ fn try_main() -> Result<()> {
     let cli = Cli::parse();
     let ws = unsafe { narrowssh::workspace::RealWorkspace::new() };
 
-    let users = resolve_users(&cli.user, cli.uid, &ws)?;
+    let control_manager = ControlManager::load(&ws, MAIN_CONTROL_FILE)?;
+    let users = resolve_users(&cli.user, cli.uid, &control_manager, &ws)?;
+
+    if users.is_empty() {
+        bail!("All users are disabled in {}", MAIN_CONTROL_FILE);
+    }
+
     println!("Affecting users {users:?}");
 
     match &cli.command {
@@ -65,8 +72,6 @@ fn try_main() -> Result<()> {
         }
     }
 
-    narrowssh::config::ControlManager::load(&ws, MAIN_CONTROL_FILE)?;
-
     Ok(())
 }
 
@@ -74,6 +79,7 @@ fn try_main() -> Result<()> {
 fn resolve_users<'a, W>(
     username: &Option<String>,
     uid: Option<u32>,
+    control_manager: &ControlManager,
     ws: &'a W,
 ) -> Result<Vec<&'a uzers::User>>
 where
@@ -99,9 +105,16 @@ where
             .ok_or(anyhow!("No such user exists"));
     }
 
-    Ok(if ws.users().current_uid() == 0 {
-        vec![ws.users().user_by_uid(0).expect("root user does not exist")]
+    let current_uid = ws.users().current_uid();
+    Ok(if current_uid == 0 {
+        ws.users()
+            .all_users()
+            .filter(|u| control_manager.get_user_control(u.uid()).enable)
+            .collect()
     } else {
-        ws.users().all_users().collect()
+        vec![ws
+            .users()
+            .user_by_uid(current_uid)
+            .expect("Current user does not exist")]
     })
 }

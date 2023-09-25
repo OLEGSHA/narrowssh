@@ -437,20 +437,20 @@ mod load_control {
         "#, [])?;
 
         let alice_cfg = cm.get_user_control(1000);
-        assert_eq!(alice_cfg.enable(), &true);
-        assert_eq!(alice_cfg.config(), "~/config.conf");
-        assert_eq!(alice_cfg.authorized_keys(), "~/.ssh/authorized_keys");
+        assert_eq!(alice_cfg.enable, true);
+        assert_eq!(alice_cfg.config, "~/config.conf");
+        assert_eq!(alice_cfg.authorized_keys, "~/.ssh/authorized_keys");
 
         let bob_cfg = cm.get_user_control(1001);
-        assert_eq!(bob_cfg.enable(), &true);
-        assert_eq!(bob_cfg.config(), "/etc/bobconfig.conf");
-        assert_eq!(bob_cfg.authorized_keys(), "/etc/bobauth");
+        assert_eq!(bob_cfg.enable, true);
+        assert_eq!(bob_cfg.config, "/etc/bobconfig.conf");
+        assert_eq!(bob_cfg.authorized_keys, "/etc/bobauth");
 
         let charlie_cfg = cm.get_user_control(1002);
-        assert_eq!(charlie_cfg.enable(), &false);
+        assert_eq!(charlie_cfg.enable, false);
 
         let dan_cfg = cm.get_user_control(1003);
-        assert_eq!(dan_cfg.enable(), &false);
+        assert_eq!(dan_cfg.enable, false);
 
         Ok(())
     }
@@ -493,20 +493,20 @@ mod load_control {
         )?;
 
         let alice_cfg = cm.get_user_control(1000);
-        assert_eq!(alice_cfg.enable(), &true);
-        assert_eq!(alice_cfg.config(), "~/config.conf");
-        assert_eq!(alice_cfg.authorized_keys(), "~/.ssh/authorized_keys");
+        assert_eq!(alice_cfg.enable, true);
+        assert_eq!(alice_cfg.config, "~/config.conf");
+        assert_eq!(alice_cfg.authorized_keys, "~/.ssh/authorized_keys");
 
         let bob_cfg = cm.get_user_control(1001);
-        assert_eq!(bob_cfg.enable(), &true);
-        assert_eq!(bob_cfg.config(), "/etc/bobconfig.conf");
-        assert_eq!(bob_cfg.authorized_keys(), "/etc/bobauth");
+        assert_eq!(bob_cfg.enable, true);
+        assert_eq!(bob_cfg.config, "/etc/bobconfig.conf");
+        assert_eq!(bob_cfg.authorized_keys, "/etc/bobauth");
 
         let charlie_cfg = cm.get_user_control(1002);
-        assert_eq!(charlie_cfg.enable(), &false);
+        assert_eq!(charlie_cfg.enable, false);
 
         let dan_cfg = cm.get_user_control(1003);
-        assert_eq!(dan_cfg.enable(), &false);
+        assert_eq!(dan_cfg.enable, false);
 
         Ok(())
     }
@@ -552,14 +552,14 @@ mod load_control {
         )?;
 
         let alice_cfg = cm.get_user_control(1000);
-        assert_eq!(alice_cfg.enable(), &true);
-        assert_eq!(alice_cfg.config(), "~/config.conf");
-        assert_eq!(alice_cfg.authorized_keys(), "~/.ssh/authorized_keys");
+        assert_eq!(alice_cfg.enable, true);
+        assert_eq!(alice_cfg.config, "~/config.conf");
+        assert_eq!(alice_cfg.authorized_keys, "~/.ssh/authorized_keys");
 
         let bob_cfg = cm.get_user_control(1001);
-        assert_eq!(bob_cfg.enable(), &true);
-        assert_eq!(bob_cfg.config(), "/etc/bobconfig.conf");
-        assert_eq!(bob_cfg.authorized_keys(), "/etc/bobauth");
+        assert_eq!(bob_cfg.enable, true);
+        assert_eq!(bob_cfg.config, "/etc/bobconfig.conf");
+        assert_eq!(bob_cfg.authorized_keys, "/etc/bobauth");
 
         Ok(())
     }
