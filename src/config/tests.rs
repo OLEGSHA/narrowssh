@@ -415,8 +415,8 @@ mod load_control {
 
     #[test]
     fn basic() -> Result<()> {
-        let _cm = load(
-            r#"
+        #[rustfmt::skip]
+        let cm = load(r#"
             # Generic example
 
             ["*"]
@@ -434,9 +434,23 @@ mod load_control {
 
             [charlie]
             config = "why/even/set/this"
-        "#,
-            [],
-        )?;
+        "#, [])?;
+
+        let alice_cfg = cm.get_user_control(1000);
+        assert_eq!(alice_cfg.enable(), &true);
+        assert_eq!(alice_cfg.config(), "~/config.conf");
+        assert_eq!(alice_cfg.authorized_keys(), "~/.ssh/authorized_keys");
+
+        let bob_cfg = cm.get_user_control(1001);
+        assert_eq!(bob_cfg.enable(), &true);
+        assert_eq!(bob_cfg.config(), "/etc/bobconfig.conf");
+        assert_eq!(bob_cfg.authorized_keys(), "/etc/bobauth");
+
+        let charlie_cfg = cm.get_user_control(1002);
+        assert_eq!(charlie_cfg.enable(), &false);
+
+        let dan_cfg = cm.get_user_control(1003);
+        assert_eq!(dan_cfg.enable(), &false);
 
         Ok(())
     }
@@ -444,6 +458,109 @@ mod load_control {
     #[test]
     fn empty() -> Result<()> {
         let _cm = load("", [])?;
+        // Do not test defaults
+        Ok(())
+    }
+
+    #[test]
+    fn extensions() -> Result<()> {
+        #[rustfmt::skip]
+        let cm = load(
+            r#"
+                # Main
+                ["*"]
+                enable = false
+                config = "~/config.conf"
+                authorized_keys = "~/.ssh/authorized_keys"
+            "#,
+            [
+                r#"
+                    # Ext 01
+                    [alice]
+                    enable = true
+                "#,
+                r#"
+                    # Ext 02
+                    [bob]
+                    enable = true
+                    config = "/etc/bobconfig.conf"
+                    authorized_keys = "/etc/bobauth"
+
+                    [charlie]
+                    config = "why/even/set/this"
+                "#,
+            ]
+        )?;
+
+        let alice_cfg = cm.get_user_control(1000);
+        assert_eq!(alice_cfg.enable(), &true);
+        assert_eq!(alice_cfg.config(), "~/config.conf");
+        assert_eq!(alice_cfg.authorized_keys(), "~/.ssh/authorized_keys");
+
+        let bob_cfg = cm.get_user_control(1001);
+        assert_eq!(bob_cfg.enable(), &true);
+        assert_eq!(bob_cfg.config(), "/etc/bobconfig.conf");
+        assert_eq!(bob_cfg.authorized_keys(), "/etc/bobauth");
+
+        let charlie_cfg = cm.get_user_control(1002);
+        assert_eq!(charlie_cfg.enable(), &false);
+
+        let dan_cfg = cm.get_user_control(1003);
+        assert_eq!(dan_cfg.enable(), &false);
+
+        Ok(())
+    }
+
+    #[test]
+    fn overriding() -> Result<()> {
+        #[rustfmt::skip]
+        let cm = load(
+            r#"
+                # Main
+                ["*"]
+                enable = false
+                config = "oops/wrong/location"
+                authorized_keys = "~/.ssh/authorized_keys"
+
+                [alice]
+                enable = false
+
+                [bob]
+                enable = true
+                config = "/one/path"
+                authorized_keys = "/another/path"
+            "#,
+            [
+                r#"
+                    # Ext 01
+                    [alice]
+                    enable = true
+                "#,
+                r#"
+                    # Ext 02
+                    [bob]
+                    enable = true
+                    config = "/etc/bobconfig.conf"
+                    authorized_keys = "/etc/bobauth"
+                "#,
+                r#"
+                    # Ext 03
+                    ["*"]
+                    config = "~/config.conf"
+                "#,
+            ]
+        )?;
+
+        let alice_cfg = cm.get_user_control(1000);
+        assert_eq!(alice_cfg.enable(), &true);
+        assert_eq!(alice_cfg.config(), "~/config.conf");
+        assert_eq!(alice_cfg.authorized_keys(), "~/.ssh/authorized_keys");
+
+        let bob_cfg = cm.get_user_control(1001);
+        assert_eq!(bob_cfg.enable(), &true);
+        assert_eq!(bob_cfg.config(), "/etc/bobconfig.conf");
+        assert_eq!(bob_cfg.authorized_keys(), "/etc/bobauth");
+
         Ok(())
     }
 

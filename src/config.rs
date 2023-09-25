@@ -156,13 +156,13 @@ where
 }
 
 /// Complete parsed configuration.
-#[derive(Getters, Debug)]
+#[derive(Clone, Getters, Debug)]
 pub struct Config {
     // TODO
 }
 
 /// A user's control settings.
-#[derive(Getters, Debug)]
+#[derive(Clone, Getters, Debug)]
 pub struct Control {
     /// Killswitch for all functionality.
     enable: bool,
@@ -305,5 +305,16 @@ impl ControlManager {
         dbg!(&result);
 
         Ok(result)
+    }
+
+    /// Returns a [`Control`] structure for given user.
+    pub fn get_user_control(&self, uid: uid_t) -> Control {
+        let mut result = self.fallback.clone();
+
+        if let Some(overrides) = self.users.get(&uid) {
+            result.fill_from(overrides);
+        }
+
+        result
     }
 }
