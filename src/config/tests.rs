@@ -380,3 +380,76 @@ mod visit_config_files {
         }
     }
 }
+
+/// Tests for [`ControlManager::load`]
+mod load_control {
+    use super::*;
+
+    fn load<S: AsRef<str>, const N: usize>(
+        main: S,
+        exts: [S; N],
+    ) -> Result<ControlManager> {
+        let mut ws = MockWorkspace::new()?;
+
+        ws.add_user(0, "root", "root")?;
+        ws.add_user(1, "daemon", "daemon-home")?;
+        ws.add_user(1000, "alice", "home/alice")?;
+        ws.add_user(1001, "bob", "home/bob")?;
+        ws.add_user(1002, "charlie", "home/charlie")?;
+        ws.add_user(1003, "dan", "home/dan")?;
+
+        let main = ws.add_file("etc/main.toml", 0, 0o600, main.as_ref())?;
+        ws.add_dir("etc/main.toml.d/", 0, 0o700)?;
+
+        for (i, ext) in exts.into_iter().enumerate() {
+            ws.add_file(
+                format!("etc/main.toml.d/{:02}.toml", i),
+                0,
+                0o600,
+                ext.as_ref(),
+            )?;
+        }
+
+        ControlManager::load(&ws, main)
+    }
+
+    #[test]
+    fn basic() -> Result<()> {
+        let _cm = load(
+            r#"
+            # Generic example
+
+            ["*"]
+            enable = false
+            config = "~/config.conf"
+            authorized_keys = "~/.ssh/authorized_keys"
+
+            [alice]
+            enable = true
+
+            [bob]
+            enable = true
+            config = "/etc/bobconfig.conf"
+            authorized_keys = "/etc/bobauth"
+
+            [charlie]
+            config = "why/even/set/this"
+        "#,
+            [],
+        )?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn empty() -> Result<()> {
+        let _cm = load("", [])?;
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_toml() -> Result<()> {
+        assert!(load("Not a valid TOML", []).is_err());
+        Ok(())
+    }
+}
