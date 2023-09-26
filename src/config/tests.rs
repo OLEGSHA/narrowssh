@@ -433,7 +433,7 @@ mod load_control {
             authorized_keys = "/etc/bobauth"
 
             [charlie]
-            config = "why/even/set/this"
+            config = "/why/even/set/this"
         "#, [])?;
 
         let alice_cfg = cm.get_user_control(1000);
@@ -487,7 +487,7 @@ mod load_control {
                     authorized_keys = "/etc/bobauth"
 
                     [charlie]
-                    config = "why/even/set/this"
+                    config = "/why/even/set/this"
                 "#,
             ]
         )?;
@@ -519,7 +519,7 @@ mod load_control {
                 # Main
                 ["*"]
                 enable = false
-                config = "oops/wrong/location"
+                config = "/oops/wrong/location"
                 authorized_keys = "~/.ssh/authorized_keys"
 
                 [alice]
@@ -567,6 +567,36 @@ mod load_control {
     #[test]
     fn invalid_toml() -> Result<()> {
         assert!(load("Not a valid TOML", []).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn empty_path() -> Result<()> {
+        #[rustfmt::skip]
+        assert!(load(r#"
+            [alice]
+            config = ""
+        "#, []).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn relative_path() -> Result<()> {
+        #[rustfmt::skip]
+        assert!(load(r#"
+            [alice]
+            config = "relative/path"
+        "#, []).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn path_starts_with_dot() -> Result<()> {
+        #[rustfmt::skip]
+        assert!(load(r#"
+            [alice]
+            config = "./relative/path"
+        "#, []).is_err());
         Ok(())
     }
 }

@@ -274,6 +274,9 @@ impl ControlManager {
 
             for (user, data) in content {
                 let data: IncompleteControl = data.try_into()?;
+
+                Self::validate(&data)?;
+
                 if user == "*" {
                     result.fallback.fill_from(&data);
                     continue;
@@ -304,6 +307,29 @@ impl ControlManager {
         dbg!(&result);
 
         Ok(result)
+    }
+
+    /// Validates additional constraints on [`IncompleteControl`] fields in
+    /// control files.
+    fn validate(data: &IncompleteControl) -> Result<()> {
+        fn validate_file_path(
+            path: &Option<String>,
+            name: &str,
+        ) -> Result<()> {
+            if let Some(path) = path {
+                match path.chars().next() {
+                    None => bail!("{name:?} fields in control files must not be empty"),
+                    Some('/') | Some('~') => {},
+                    _ => bail!("{name:?} fields in control files must begin with '/' or '~'"),
+                }
+            }
+            Ok(())
+        }
+
+        validate_file_path(&data.config, "config")?;
+        validate_file_path(&data.authorized_keys, "authorized_keys")?;
+
+        Ok(())
     }
 
     /// Returns a [`Control`] structure for given user.
