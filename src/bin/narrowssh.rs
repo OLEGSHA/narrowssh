@@ -10,22 +10,29 @@ use narrowssh::config::ControlManager;
 use narrowssh::workspace::Workspace;
 
 /// Manage allowlisted SSH commands for one or more users.
-///
-/// When run as root, affects all users unless overridden by --user; otherwise
-/// affects only the executing user.
 #[derive(Parser)]
 #[command(author, version, about, long_about)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 
-    /// Limit affected users to given username. Incompatible with --uid.
+    /// Affect user with given username instead of running user.
+    ///
+    /// Incompatible with --uid and --all-users.
     #[arg(short, long)]
     user: Option<String>,
 
-    /// Limit affected users to given user ID. Incompatible with --user.
+    /// Affect user with given user ID instead of running user.
+    ///
+    /// Incompatible with --user and --all-users.
     #[arg(long)]
     uid: Option<u32>,
+
+    /// Affect all users according to the control file.
+    ///
+    /// Incompatible with --user and --uid.
+    #[arg(short, long)]
+    all_users: bool,
 }
 
 #[derive(Subcommand)]
@@ -54,12 +61,7 @@ fn try_main() -> Result<()> {
     let cli = Cli::parse();
     let ws = unsafe { narrowssh::workspace::RealWorkspace::new() };
 
-    let control_manager = ControlManager::load(&ws, MAIN_CONTROL_FILE)?;
-    let users = resolve_users(&cli.user, cli.uid, &control_manager, &ws)?;
-
-    if users.is_empty() {
-        bail!("All users are disabled in {}", MAIN_CONTROL_FILE);
-    }
+    let users = resolve_users(&cli, &ws)?;
 
     println!("Affecting users {users:?}");
 
@@ -76,20 +78,22 @@ fn try_main() -> Result<()> {
 }
 
 /// Returns all users that should be affected.
-fn resolve_users<'a, W>(
-    username: &Option<String>,
-    uid: Option<u32>,
-    control_manager: &ControlManager,
-    ws: &'a W,
-) -> Result<Vec<&'a uzers::User>>
+///
+/// If `--all-users` is set, control file is read, parsed and discarded.
+fn resolve_users<'a, W>(cli: &Cli, ws: &'a W) -> Result<Vec<&'a uzers::User>>
 where
     W: Workspace,
 {
-    if username.is_some() && uid.is_some() {
-        bail!("--user and --uid are incompatible");
+    // Count enabled user selection flags
+    if i32::from(cli.user.is_some())
+        + i32::from(cli.uid.is_some())
+        + i32::from(cli.all_users)
+        > 1
+    {
+        bail!("Only one of --user, --uid and --all-users is allowed");
     }
 
-    if let Some(username) = username {
+    if let Some(username) = &cli.user {
         return ws
             .users()
             .user_by_username(username)?
@@ -97,7 +101,7 @@ where
             .ok_or(anyhow!("No such user exists"));
     }
 
-    if let Some(uid) = uid {
+    if let Some(uid) = cli.uid {
         return ws
             .users()
             .user_by_uid(uid)
@@ -105,16 +109,24 @@ where
             .ok_or(anyhow!("No such user exists"));
     }
 
-    let current_uid = ws.users().current_uid();
-    Ok(if current_uid == 0 {
-        ws.users()
+    if cli.all_users {
+        let control_manager = ControlManager::load(ws, MAIN_CONTROL_FILE)?;
+
+        let result: Vec<_> = ws
+            .users()
             .all_users()
             .filter(|u| control_manager.get_user_control(u.uid()).enable)
-            .collect()
-    } else {
-        vec![ws
-            .users()
-            .user_by_uid(current_uid)
-            .expect("Current user does not exist")]
-    })
+            .collect();
+
+        if result.is_empty() {
+            bail!("All users are disabled in {}", MAIN_CONTROL_FILE);
+        }
+
+        return Ok(result);
+    }
+
+    Ok(vec![ws
+        .users()
+        .user_by_uid(ws.users().current_uid())
+        .expect("Current user does not exist")])
 }
